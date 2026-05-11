@@ -1,0 +1,16 @@
+{
+  "name": "Rota Görev Haritası",
+  "short_name": "Rota Görev",
+  "description": "Konum tabanlı görev noktaları, rota kaydı ve tamamlanma yüzdesi.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f2",
+  "theme_color": "#0d4f55",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%230d747c'/%3E%3Cpath d='M96 30c-28 0-50 21-50 48 0 37 50 84 50 84s50-47 50-84c0-27-22-48-50-48Zm0 67a19 19 0 1 1 0-38 19 19 0 0 1 0 38Z' fill='white'/%3E%3Cpath d='M48 154c24-18 72-18 96 0' fill='none' stroke='%23f3ba4d' stroke-width='14' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

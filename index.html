@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d4f55" />
+    <title>Rota Görev Haritası</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="map-stage" aria-label="Görev haritası">
+        <div class="map-topbar">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <div>
+              <h1>Rota Görev Haritası</h1>
+              <p id="statusText">Konum bekleniyor</p>
+            </div>
+          </div>
+          <button class="icon-button" id="recenterButton" type="button" title="Konuma odaklan" aria-label="Konuma odaklan">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2.75v2.4M12 18.85v2.4M21.25 12h-2.4M5.15 12h-2.4" />
+              <circle cx="12" cy="12" r="5.6" />
+              <circle cx="12" cy="12" r="1.45" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="map" id="map">
+          <div class="tile-layer" id="tileLayer"></div>
+          <svg class="route-layer" id="routeLayer" aria-hidden="true"></svg>
+          <div class="mission-layer" id="missionLayer" aria-hidden="true"></div>
+          <div class="accuracy-ring" id="accuracyRing"></div>
+          <div class="location-dot" id="locationDot" aria-hidden="true"></div>
+          <div class="location-prompt" id="locationPrompt" role="dialog" aria-labelledby="locationPromptTitle">
+            <div>
+              <h2 id="locationPromptTitle">Konumunu güncelleyelim mi?</h2>
+              <p>Haritayı cihazının mevcut konumuna taşımak için izin isteyeceğim.</p>
+            </div>
+            <div class="prompt-actions">
+              <button class="secondary-button" id="dismissLocationButton" type="button">Sonra</button>
+              <button class="primary-button" id="updateLocationButton" type="button">Konumu Güncelle</button>
+            </div>
+          </div>
+          <div class="map-attribution">
+            Harita verisi <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>
+          </div>
+        </div>
+      </section>
+
+      <aside class="control-panel" aria-label="Görev kontrol paneli">
+        <div class="progress-card">
+          <div class="progress-copy">
+            <span>Tamamlanma</span>
+            <strong id="progressValue">0%</strong>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p id="progressHint">Görevi başlatınca yakın çevrende kontrol noktaları oluşur.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat">
+            <span>Geçilen</span>
+            <strong id="visitedCount">0/0</strong>
+          </div>
+          <div class="stat">
+            <span>Mesafe</span>
+            <strong id="distanceValue">0 m</strong>
+          </div>
+          <div class="stat">
+            <span>Doğruluk</span>
+            <strong id="accuracyValue">-</strong>
+          </div>
+          <div class="stat">
+            <span>Süre</span>
+            <strong id="durationValue">00:00</strong>
+          </div>
+        </div>
+
+        <div class="mission-settings">
+          <label for="missionRadius">Görev alanı</label>
+          <div class="range-row">
+            <input id="missionRadius" type="range" min="120" max="700" value="320" step="20" />
+            <output id="radiusOutput" for="missionRadius">320 m</output>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary-button" id="startButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5.2 18.4 12 8 18.8Z" />
+            </svg>
+            Görevi Başlat
+          </button>
+          <button class="secondary-button" id="stopButton" type="button" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 6.5h10v11H7Z" />
+            </svg>
+            Duraklat
+          </button>
+          <button class="secondary-button" id="demoButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.8 12.6c2.7-6.1 9-6.1 14.4 0" />
+              <path d="m15.8 9.2 3.4 3.4-3.4 3.4" />
+            </svg>
+            Demo Yürüyüş
+          </button>
+          <button class="ghost-button" id="resetButton" type="button">Sıfırla</button>
+        </div>
+
+        <div class="checkpoint-list">
+          <div class="section-title">
+            <h2>Görev Noktaları</h2>
+            <span id="missionState">Hazır</span>
+          </div>
+          <ol id="checkpointList"></ol>
+        </div>
+      </aside>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

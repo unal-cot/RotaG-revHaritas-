@@ -1,0 +1,616 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f7f2;
+  --panel: #ffffff;
+  --panel-strong: #e9f2ec;
+  --text: #102326;
+  --muted: #64746f;
+  --line: #d8e1da;
+  --accent: #0d747c;
+  --accent-strong: #0a575d;
+  --accent-soft: #dff3f1;
+  --route: #e4572e;
+  --visited: #0f9f6e;
+  --shadow: 0 24px 60px rgba(28, 46, 39, 0.16);
+  --radius: 8px;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    linear-gradient(135deg, rgba(13, 116, 124, 0.12), transparent 32%),
+    linear-gradient(315deg, rgba(228, 87, 46, 0.11), transparent 30%),
+    var(--bg);
+  color: var(--text);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 18px;
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.map-stage,
+.control-panel {
+  min-width: 0;
+  border: 1px solid rgba(216, 225, 218, 0.92);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.map-stage {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: calc(100vh - 36px);
+  border-radius: 8px;
+}
+
+.map-topbar {
+  position: absolute;
+  z-index: 12;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(420px, calc(100vw - 120px));
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 225, 218, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 30px rgba(31, 48, 43, 0.14);
+  pointer-events: auto;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 54% 42%, #fff 0 9%, transparent 10%),
+    conic-gradient(from 230deg, var(--route), #f6c85f, var(--accent), #1f5560, var(--route));
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 18px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.brand p,
+.progress-card p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(216, 225, 218, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--accent-strong);
+  box-shadow: 0 12px 30px rgba(31, 48, 43, 0.14);
+  pointer-events: auto;
+}
+
+svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map {
+  position: relative;
+  grid-row: 1 / -1;
+  height: 100%;
+  min-height: 540px;
+  overflow: hidden;
+  background: #d7e6de;
+  isolation: isolate;
+}
+
+.tile-layer,
+.route-layer,
+.mission-layer,
+.accuracy-ring,
+.location-dot {
+  position: absolute;
+  inset: 0;
+}
+
+.tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  user-select: none;
+}
+
+.route-layer {
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.mission-layer {
+  z-index: 5;
+  pointer-events: none;
+}
+
+.checkpoint-pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #1f5560;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(24, 38, 36, 0.23);
+  font-size: 12px;
+  font-weight: 800;
+  transform: translate(-50%, -50%);
+}
+
+.checkpoint-pin.visited {
+  background: var(--visited);
+}
+
+.checkpoint-pin.active {
+  outline: 4px solid rgba(228, 87, 46, 0.24);
+  background: var(--route);
+}
+
+.accuracy-ring {
+  z-index: 6;
+  width: 38px;
+  height: 38px;
+  border: 2px solid rgba(13, 116, 124, 0.28);
+  border-radius: 50%;
+  background: rgba(13, 116, 124, 0.11);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.location-dot {
+  z-index: 7;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 8px rgba(13, 116, 124, 0.2), 0 10px 24px rgba(16, 35, 38, 0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.map-attribution {
+  position: absolute;
+  z-index: 10;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.map-attribution a {
+  color: var(--accent-strong);
+}
+
+.location-prompt {
+  position: absolute;
+  z-index: 11;
+  left: 16px;
+  bottom: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: min(620px, calc(100% - 32px));
+  padding: 14px;
+  border: 1px solid rgba(216, 225, 218, 0.94);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 38px rgba(31, 48, 43, 0.16);
+}
+
+.location-prompt.is-hidden {
+  display: none;
+}
+
+.location-prompt h2 {
+  font-size: 17px;
+}
+
+.location-prompt p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.prompt-actions button {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: calc(100vh - 36px);
+  padding: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.progress-card,
+.stat,
+.mission-settings,
+.checkpoint-list {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.progress-card {
+  padding: 16px;
+}
+
+.progress-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.progress-copy span,
+.stat span,
+.mission-settings label,
+.section-title span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.progress-copy strong {
+  font-size: 44px;
+  line-height: 0.95;
+}
+
+.progress-track {
+  overflow: hidden;
+  height: 12px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: #e5ece7;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--visited), #f3ba4d);
+  transition: width 280ms ease;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  padding: 14px;
+}
+
+.stat strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.mission-settings {
+  padding: 14px;
+}
+
+.range-row {
+  display: grid;
+  grid-template-columns: 1fr 68px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+output {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 13px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.primary-button {
+  grid-column: 1 / -1;
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+.secondary-button {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.ghost-button {
+  background: transparent;
+  border-color: var(--line) !important;
+  color: var(--text);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.checkpoint-list {
+  overflow: hidden;
+  flex: 1;
+  min-height: 220px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+h2 {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+ol {
+  display: grid;
+  gap: 1px;
+  max-height: 48vh;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  background: var(--line);
+}
+
+li {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.list-number {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e7eef0;
+  color: #315359;
+  font-weight: 800;
+}
+
+li.done .list-number {
+  background: var(--visited);
+  color: #fff;
+}
+
+li.active .list-number {
+  background: var(--route);
+  color: #fff;
+}
+
+.distance-pill {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .map-stage {
+    min-height: 62vh;
+  }
+
+  .control-panel {
+    min-height: auto;
+  }
+
+  ol {
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    gap: 10px;
+    width: 100vw;
+    max-width: 100vw;
+    padding: 10px 0;
+    overflow: hidden;
+  }
+
+  .map-stage,
+  .control-panel {
+    width: 100%;
+    max-width: 100vw;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .control-panel {
+    padding: 10px;
+  }
+
+  .map-stage {
+    min-height: 58vh;
+  }
+
+  .map-topbar {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+  }
+
+  .brand {
+    max-width: calc(100vw - 84px);
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 16px;
+  }
+
+  .brand p {
+    font-size: 12px;
+  }
+
+  .location-prompt {
+    left: 10px;
+    bottom: 10px;
+    grid-template-columns: 1fr;
+    width: calc(100% - 20px);
+  }
+
+  .prompt-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .progress-copy strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 34px;
+  }
+
+  .progress-copy {
+    display: block;
+  }
+
+  .stats-grid {
+    gap: 8px;
+  }
+
+  .stat {
+    padding: 12px;
+  }
+
+  .stat strong {
+    font-size: 20px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-button {
+    grid-column: auto;
+  }
+}
