@@ -29,6 +29,26 @@
         </div>
 
         <div class="map" id="map">
+          <div class="map-controls" aria-label="Harita kontrolleri">
+            <button class="icon-button" id="zoomInButton" type="button" title="Yakınlaştır" aria-label="Yakınlaştır">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+            <button class="icon-button" id="zoomOutButton" type="button" title="Uzaklaştır" aria-label="Uzaklaştır">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h14" />
+              </svg>
+            </button>
+            <label class="map-style-control" for="mapStyleSelect">
+              <span>Görünüm</span>
+              <select id="mapStyleSelect">
+                <option value="standard">Standart</option>
+                <option value="light">Açık</option>
+                <option value="topo">Topografik</option>
+              </select>
+            </label>
+          </div>
           <div class="tile-layer" id="tileLayer"></div>
           <svg class="route-layer" id="routeLayer" aria-hidden="true"></svg>
           <div class="mission-layer" id="missionLayer" aria-hidden="true"></div>

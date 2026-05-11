@@ -1,7 +1,23 @@
 const TILE_SIZE = 256;
-const MAP_ZOOM = 17;
+const DEFAULT_MAP_ZOOM = 17;
+const MIN_MAP_ZOOM = 3;
+const MAX_MAP_ZOOM = 19;
 const VISIT_RADIUS_METERS = 38;
 const STORAGE_KEY = "route-mission-state-v1";
+const MAP_STYLES = {
+  standard: {
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "OpenStreetMap",
+  },
+  light: {
+    url: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    attribution: "CARTO + OpenStreetMap",
+  },
+  topo: {
+    url: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+    attribution: "OpenTopoMap",
+  },
+};
 
 const els = {
   map: document.querySelector("#map"),
@@ -25,11 +41,15 @@ const els = {
   resetButton: document.querySelector("#resetButton"),
   demoButton: document.querySelector("#demoButton"),
   recenterButton: document.querySelector("#recenterButton"),
+  zoomInButton: document.querySelector("#zoomInButton"),
+  zoomOutButton: document.querySelector("#zoomOutButton"),
+  mapStyleSelect: document.querySelector("#mapStyleSelect"),
   locationPrompt: document.querySelector("#locationPrompt"),
   updateLocationButton: document.querySelector("#updateLocationButton"),
   dismissLocationButton: document.querySelector("#dismissLocationButton"),
   checkpointList: document.querySelector("#checkpointList"),
   missionState: document.querySelector("#missionState"),
+  mapAttribution: document.querySelector(".map-attribution"),
 };
 
 const state = {
@@ -45,6 +65,8 @@ const state = {
   followLocation: true,
   demoTimer: null,
   locationAsked: false,
+  zoom: DEFAULT_MAP_ZOOM,
+  mapStyle: "standard",
 };
 
 function clamp(value, min, max) {
@@ -92,7 +114,7 @@ function destinationPoint(origin, distanceMeters, bearingDegrees) {
   return { lat: toDeg(lat2), lng: toDeg(lng2) };
 }
 
-function project(lat, lng, zoom = MAP_ZOOM) {
+function project(lat, lng, zoom = state.zoom) {
   const scale = TILE_SIZE * 2 ** zoom;
   const x = ((lng + 180) / 360) * scale;
   const sinLat = Math.sin(toRad(clamp(lat, -85.05112878, 85.05112878)));
@@ -100,7 +122,7 @@ function project(lat, lng, zoom = MAP_ZOOM) {
   return { x, y };
 }
 
-function unproject(x, y, zoom = MAP_ZOOM) {
+function unproject(x, y, zoom = state.zoom) {
   const scale = TILE_SIZE * 2 ** zoom;
   const lng = (x / scale) * 360 - 180;
   const n = Math.PI - (2 * Math.PI * y) / scale;
@@ -152,7 +174,8 @@ function renderTiles() {
   const startY = Math.floor(topLeftY / TILE_SIZE);
   const endX = Math.floor((topLeftX + rect.width) / TILE_SIZE);
   const endY = Math.floor((topLeftY + rect.height) / TILE_SIZE);
-  const maxTile = 2 ** MAP_ZOOM;
+  const maxTile = 2 ** state.zoom;
+  const style = MAP_STYLES[state.mapStyle] || MAP_STYLES.standard;
   const fragment = document.createDocumentFragment();
 
   els.tileLayer.innerHTML = "";
@@ -164,7 +187,10 @@ function renderTiles() {
       img.className = "tile";
       img.alt = "";
       img.draggable = false;
-      img.src = `https://tile.openstreetmap.org/${MAP_ZOOM}/${wrappedX}/${y}.png`;
+      img.src = style.url
+        .replace("{z}", String(state.zoom))
+        .replace("{x}", String(wrappedX))
+        .replace("{y}", String(y));
       img.style.left = `${x * TILE_SIZE - topLeftX}px`;
       img.style.top = `${y * TILE_SIZE - topLeftY}px`;
       fragment.append(img);
@@ -172,6 +198,7 @@ function renderTiles() {
   }
 
   els.tileLayer.append(fragment);
+  els.mapAttribution.innerHTML = `Harita verisi <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">${style.attribution}</a>`;
 }
 
 function renderRoute() {
@@ -229,7 +256,7 @@ function renderMarkers() {
   els.accuracyRing.style.left = `${current.x}px`;
   els.accuracyRing.style.top = `${current.y}px`;
 
-  const metersPerPixel = 156543.03392 * Math.cos(toRad(state.center.lat)) / 2 ** MAP_ZOOM;
+  const metersPerPixel = 156543.03392 * Math.cos(toRad(state.center.lat)) / 2 ** state.zoom;
   const radius = clamp((state.current.accuracy || 25) / metersPerPixel, 32, 220);
   els.accuracyRing.style.width = `${radius * 2}px`;
   els.accuracyRing.style.height = `${radius * 2}px`;
@@ -492,6 +519,37 @@ function recenter() {
   renderAll();
 }
 
+function setZoom(nextZoom, anchorPoint) {
+  const zoom = clamp(Math.round(nextZoom), MIN_MAP_ZOOM, MAX_MAP_ZOOM);
+  if (zoom === state.zoom) return;
+
+  if (anchorPoint) {
+    const rect = els.map.getBoundingClientRect();
+    const beforeCenterPx = project(state.center.lat, state.center.lng, state.zoom);
+    const anchorWorldBefore = {
+      x: beforeCenterPx.x + anchorPoint.x - rect.width / 2,
+      y: beforeCenterPx.y + anchorPoint.y - rect.height / 2,
+    };
+    const anchorLatLng = unproject(anchorWorldBefore.x, anchorWorldBefore.y, state.zoom);
+    const anchorWorldAfter = project(anchorLatLng.lat, anchorLatLng.lng, zoom);
+    const centerAfter = {
+      x: anchorWorldAfter.x - anchorPoint.x + rect.width / 2,
+      y: anchorWorldAfter.y - anchorPoint.y + rect.height / 2,
+    };
+    state.center = unproject(centerAfter.x, centerAfter.y, zoom);
+  }
+
+  state.zoom = zoom;
+  saveState();
+  renderAll();
+}
+
+function setMapStyle(style) {
+  state.mapStyle = MAP_STYLES[style] ? style : "standard";
+  saveState();
+  renderAll();
+}
+
 function saveState() {
   const snapshot = {
     center: state.center,
@@ -501,6 +559,8 @@ function saveState() {
     elapsedBeforePause: getElapsed(),
     distanceMeters: state.distanceMeters,
     radius: els.missionRadius.value,
+    zoom: state.zoom,
+    mapStyle: state.mapStyle,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
 }
@@ -516,6 +576,11 @@ function loadState() {
     state.elapsedBeforePause = snapshot.elapsedBeforePause || 0;
     state.distanceMeters = snapshot.distanceMeters || 0;
     if (snapshot.radius) els.missionRadius.value = snapshot.radius;
+    if (snapshot.zoom) state.zoom = clamp(snapshot.zoom, MIN_MAP_ZOOM, MAX_MAP_ZOOM);
+    if (snapshot.mapStyle && MAP_STYLES[snapshot.mapStyle]) {
+      state.mapStyle = snapshot.mapStyle;
+      els.mapStyleSelect.value = snapshot.mapStyle;
+    }
     setStatus(state.current ? "Kayıtlı görev yüklendi" : "Konum bekleniyor");
   } catch {
     localStorage.removeItem(STORAGE_KEY);
@@ -566,6 +631,21 @@ els.stopButton.addEventListener("click", stopMission);
 els.resetButton.addEventListener("click", resetMission);
 els.demoButton.addEventListener("click", startDemoWalk);
 els.recenterButton.addEventListener("click", recenter);
+els.zoomInButton.addEventListener("click", () => setZoom(state.zoom + 1));
+els.zoomOutButton.addEventListener("click", () => setZoom(state.zoom - 1));
+els.mapStyleSelect.addEventListener("change", (event) => setMapStyle(event.target.value));
+els.map.addEventListener(
+  "wheel",
+  (event) => {
+    event.preventDefault();
+    const rect = els.map.getBoundingClientRect();
+    setZoom(state.zoom + (event.deltaY < 0 ? 1 : -1), {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+  },
+  { passive: false },
+);
 els.updateLocationButton.addEventListener("click", requestCurrentLocation);
 els.dismissLocationButton.addEventListener("click", () => {
   state.locationAsked = true;

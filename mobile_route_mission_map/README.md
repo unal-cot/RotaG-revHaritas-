@@ -6,6 +6,8 @@ Flutter ile hazırlanmış Android/iOS uygulama sürümüdür.
 
 - 📍 Cihaz konumu isteme
 - 🗺️ OpenStreetMap tabanlı harita
+- 🔎 Yakınlaştırma / uzaklaştırma kontrolleri
+- 🧭 Standart, açık ve topografik harita görünümleri
 - 🎯 Konum çevresinde görev noktaları oluşturma
 - 🚶 Rota çizimi
 - ✅ Kontrol noktası tamamlanma takibi

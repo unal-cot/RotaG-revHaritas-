@@ -45,6 +45,29 @@ class MissionCheckpoint {
   bool visited;
 }
 
+enum MapVisualStyle {
+  standard(
+    label: 'Standart',
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  ),
+  light(
+    label: 'Açık',
+    urlTemplate: 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+  ),
+  topo(
+    label: 'Topografik',
+    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+  );
+
+  const MapVisualStyle({
+    required this.label,
+    required this.urlTemplate,
+  });
+
+  final String label;
+  final String urlTemplate;
+}
+
 class MissionMapScreen extends StatefulWidget {
   const MissionMapScreen({super.key});
 
@@ -68,8 +91,10 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
   LatLng _center = _initialCenter;
   LatLng? _currentPoint;
   double? _accuracy;
+  double _mapZoom = 17;
   double _distanceMeters = 0;
   int _missionRadius = 320;
+  MapVisualStyle _mapStyle = MapVisualStyle.standard;
   bool _missionActive = false;
   bool _askingLocation = true;
   bool _isLocating = false;
@@ -289,7 +314,7 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
       _status = _missionActive ? 'Canlı konum izleniyor' : 'Konum alındı';
     });
 
-    _mapController.move(point, _mapController.camera.zoom);
+    _mapController.move(point, _mapZoom);
   }
 
   void _createMission(LatLng origin) {
@@ -345,7 +370,22 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
   void _recenter() {
     final point = _currentPoint;
     if (point == null) return;
-    _mapController.move(point, 17);
+    setState(() => _mapZoom = 17);
+    _mapController.move(point, _mapZoom);
+  }
+
+  void _zoomIn() {
+    setState(() => _mapZoom = (_mapZoom + 1).clamp(3, 19).toDouble());
+    _mapController.move(_mapController.camera.center, _mapZoom);
+  }
+
+  void _zoomOut() {
+    setState(() => _mapZoom = (_mapZoom - 1).clamp(3, 19).toDouble());
+    _mapController.move(_mapController.camera.center, _mapZoom);
+  }
+
+  void _changeMapStyle(MapVisualStyle style) {
+    setState(() => _mapStyle = style);
   }
 
   void _setStatus(String value) {
@@ -382,6 +422,8 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
               center: _center,
               currentPoint: _currentPoint,
               accuracy: _accuracy,
+              mapZoom: _mapZoom,
+              mapStyle: _mapStyle,
               route: _route,
               checkpoints: _checkpoints,
               nextCheckpoint: _nextCheckpoint,
@@ -392,6 +434,9 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
               onRequestLocation: _requestCurrentLocation,
               onDismissLocation: () => setState(() => _askingLocation = false),
               onRecenter: _recenter,
+              onZoomIn: _zoomIn,
+              onZoomOut: _zoomOut,
+              onMapStyleChanged: _changeMapStyle,
             );
 
             final panel = _MissionPanel(
@@ -445,6 +490,8 @@ class _MapPane extends StatelessWidget {
     required this.center,
     required this.currentPoint,
     required this.accuracy,
+    required this.mapZoom,
+    required this.mapStyle,
     required this.route,
     required this.checkpoints,
     required this.nextCheckpoint,
@@ -455,11 +502,16 @@ class _MapPane extends StatelessWidget {
     required this.onRequestLocation,
     required this.onDismissLocation,
     required this.onRecenter,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onMapStyleChanged,
   });
 
   final LatLng center;
   final LatLng? currentPoint;
   final double? accuracy;
+  final double mapZoom;
+  final MapVisualStyle mapStyle;
   final List<LatLng> route;
   final List<MissionCheckpoint> checkpoints;
   final MissionCheckpoint? nextCheckpoint;
@@ -470,6 +522,9 @@ class _MapPane extends StatelessWidget {
   final VoidCallback onRequestLocation;
   final VoidCallback onDismissLocation;
   final VoidCallback onRecenter;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final ValueChanged<MapVisualStyle> onMapStyleChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -481,14 +536,17 @@ class _MapPane extends StatelessWidget {
             mapController: controller,
             options: MapOptions(
               initialCenter: center,
-              initialZoom: 17,
+              initialZoom: mapZoom,
               interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.drag | InteractiveFlag.pinchZoom | InteractiveFlag.doubleTapZoom,
+                flags: InteractiveFlag.drag |
+                    InteractiveFlag.pinchZoom |
+                    InteractiveFlag.doubleTapZoom |
+                    InteractiveFlag.scrollWheelZoom,
               ),
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: mapStyle.urlTemplate,
                 userAgentPackageName: 'com.unalcot.routemissionmap',
               ),
               if (route.length > 1)
@@ -511,7 +569,7 @@ class _MapPane extends StatelessWidget {
                   if (currentPoint != null && accuracy != null)
                     CircleMarker(
                       point: currentPoint!,
-                      radius: accuracy!.clamp(18, 120),
+                      radius: accuracy!.clamp(18, 120).toDouble(),
                       color: const Color(0xFF0D747C).withOpacity(0.12),
                       borderColor: const Color(0xFF0D747C).withOpacity(0.35),
                       borderStrokeWidth: 2,
@@ -555,10 +613,12 @@ class _MapPane extends StatelessWidget {
           Positioned(
             right: 16,
             top: 16,
-            child: _IconMapButton(
-              icon: Icons.my_location,
-              tooltip: 'Konuma odaklan',
-              onTap: onRecenter,
+            child: _MapControlStack(
+              selectedStyle: mapStyle,
+              onRecenter: onRecenter,
+              onZoomIn: onZoomIn,
+              onZoomOut: onZoomOut,
+              onMapStyleChanged: onMapStyleChanged,
             ),
           ),
           if (askingLocation)
@@ -743,6 +803,93 @@ class _IconMapButton extends StatelessWidget {
             child: Icon(icon, color: const Color(0xFF0A575D)),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MapControlStack extends StatelessWidget {
+  const _MapControlStack({
+    required this.selectedStyle,
+    required this.onRecenter,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onMapStyleChanged,
+  });
+
+  final MapVisualStyle selectedStyle;
+  final VoidCallback onRecenter;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final ValueChanged<MapVisualStyle> onMapStyleChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 152,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _IconMapButton(
+            icon: Icons.my_location,
+            tooltip: 'Konuma odaklan',
+            onTap: onRecenter,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _IconMapButton(
+                icon: Icons.remove_rounded,
+                tooltip: 'Uzaklaştır',
+                onTap: onZoomOut,
+              ),
+              const SizedBox(width: 8),
+              _IconMapButton(
+                icon: Icons.add_rounded,
+                tooltip: 'Yakınlaştır',
+                onTap: onZoomIn,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.92),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<MapVisualStyle>(
+                  value: selectedStyle,
+                  isExpanded: true,
+                  icon: const Icon(Icons.layers_rounded, size: 18),
+                  items: MapVisualStyle.values.map((style) {
+                    return DropdownMenuItem(
+                      value: style,
+                      child: Text(
+                        style.label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (style) {
+                    if (style != null) onMapStyleChanged(style);
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

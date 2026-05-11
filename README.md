@@ -10,6 +10,8 @@ Bu proje ileride mobil uygulamaya dönüştürülebilecek şekilde hazırlanmı�
 
 - 📍 Cihazın mevcut konumunu isteme ve haritayı o konuma taşıma
 - 🗺️ OpenStreetMap harita katmanı
+- 🔎 Haritayı yakınlaştırma / uzaklaştırma
+- 🧭 Standart, açık ve topografik harita görünümü seçenekleri
 - 🎯 Konuma göre otomatik görev / kontrol noktası oluşturma
 - 🚶 Geçilen rotayı harita üzerinde çizme
 - ✅ Kontrol noktasına yaklaşıldığında otomatik tamamlandı işaretleme
@@ -72,6 +74,8 @@ The project is designed as a starting point for a future mobile app. A basic PWA
 
 - 📍 Request the device’s current location and center the map on it
 - 🗺️ OpenStreetMap tile layer
+- 🔎 Zoom in / zoom out controls
+- 🧭 Standard, light, and topographic map style options
 - 🎯 Automatically generate mission checkpoints around the current location
 - 🚶 Draw the traveled route on the map
 - ✅ Mark checkpoints as completed when the user gets close

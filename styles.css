@@ -137,6 +137,49 @@ h1 {
   pointer-events: auto;
 }
 
+.map-controls {
+  position: absolute;
+  z-index: 12;
+  top: 78px;
+  right: 16px;
+  display: grid;
+  gap: 8px;
+  width: 138px;
+}
+
+.map-controls .icon-button {
+  width: 48px;
+  height: 48px;
+  justify-self: end;
+}
+
+.map-style-control {
+  display: grid;
+  gap: 5px;
+  padding: 9px;
+  border: 1px solid rgba(216, 225, 218, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 30px rgba(31, 48, 43, 0.14);
+}
+
+.map-style-control span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.map-style-control select {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  outline: none;
+}
+
 svg {
   width: 21px;
   height: 21px;
@@ -557,6 +600,12 @@ li.active .list-number {
     top: 10px;
     left: 10px;
     right: 10px;
+  }
+
+  .map-controls {
+    top: 74px;
+    right: 10px;
+    width: 122px;
   }
 
   .brand {
