@@ -1,6 +1,6 @@
 # 🗺️ Rota Görev Haritası Mobile
 
-Flutter ile hazırlanmış Android/iOS uygulama sürümüdür.
+Flutter ile hazırlanmış, **Android, iOS ve Web** platformlarında çalışan uygulamadır.
 
 ## Özellikler
 
@@ -13,23 +13,43 @@ Flutter ile hazırlanmış Android/iOS uygulama sürümüdür.
 - ✅ Kontrol noktası tamamlanma takibi
 - 📊 Yüzde, mesafe, süre ve GPS doğruluğu
 - 🧪 Demo yürüyüş modu
-- 📱 Android ve iOS hedefi
+- 💾 Görev durumunu kaydetme (localStorage / SharedPreferences)
+- 📱 Android, iOS ve Web hedefi (tek kod tabanı)
 
 ## Kurulum
 
-Bu makinede Flutter kurulu olmadığı için native iskelet burada üretilemedi. Flutter kurulduktan sonra bu klasörde şu komutları çalıştır:
+Flutter kurulu bir makinede:
 
 ```bash
-flutter create . --platforms=android,ios
+cd mobile_route_mission_map
 flutter pub get
-flutter run
 ```
 
-`flutter create .` komutu Android/iOS native dosyalarını tamamlar. Bu klasördeki `lib/main.dart` ve `pubspec.yaml` uygulama mantığını hazır taşır.
+### Web'de çalıştırma
+
+```bash
+flutter run -d chrome
+```
+
+### Web build
+
+```bash
+flutter build web
+```
+
+Çıktı `build/web/` dizinindedir.
+
+### Mobilde çalıştırma
+
+```bash
+flutter run        # bağlı cihazda
+flutter build apk  # Android APK
+flutter build ios  # iOS (macOS gerekir)
+```
 
 ## Android İzinleri
 
-`flutter create` sonrasında `android/app/src/main/AndroidManifest.xml` içine şu izinler eklenmeli:
+`android/app/src/main/AndroidManifest.xml` içinde şu izinler bulunmalı:
 
 - `ACCESS_FINE_LOCATION`
 - `ACCESS_COARSE_LOCATION`
@@ -37,7 +57,7 @@ flutter run
 
 ## iOS İzinleri
 
-`flutter create` sonrasında `ios/Runner/Info.plist` içine konum açıklamaları eklenmeli:
+`ios/Runner/Info.plist` içinde konum açıklamaları bulunmalı:
 
 - `NSLocationWhenInUseUsageDescription`
 - `NSLocationAlwaysAndWhenInUseUsageDescription`

@@ -51,16 +51,13 @@ Uygulama açıldığında “Konumunu güncelleyelim mi?” sorusu çıkar. **Ko
 
 ### 📱 Mobil Hedef
 
-Bu prototip web üzerinde hazırlanmıştır; sonraki aşamada mobil için:
+`mobile_route_mission_map/` dizinindeki Flutter uygulaması Android, iOS ve Web'i tek kod tabanından destekler. Gelecekte eklenebilecekler:
 
-- React Native / Expo uyarlaması
 - Arka planda konum takibi
 - Görev geçmişi
 - Kullanıcı hesabı
 - Gerçek görev senaryoları
 - Harita sağlayıcı seçimi
-
-eklenebilir.
 
 ---
 
@@ -115,9 +112,8 @@ When the app opens, it asks whether you want to update your location. Pressing *
 
 ### 📱 Mobile Roadmap
 
-This prototype currently runs on the web. Future mobile-focused improvements may include:
+The Flutter app in `mobile_route_mission_map/` already supports Android, iOS, and Web from a single Dart codebase. Future improvements may include:
 
-- React Native / Expo version
 - Background location tracking
 - Mission history
 - User accounts
@@ -128,12 +124,48 @@ This prototype currently runs on the web. Future mobile-focused improvements may
 
 ## 🛠️ Tech Stack
 
+### Web Prototype (root directory)
 - HTML
 - CSS
 - Vanilla JavaScript
 - OpenStreetMap tiles
 - Browser Geolocation API
 - PWA manifest + service worker
+
+### Flutter App (`mobile_route_mission_map/`)
+- Flutter / Dart
+- `flutter_map` for OpenStreetMap rendering
+- `geolocator` for device GPS
+- `latlong2` for geospatial math
+- `shared_preferences` for state persistence (localStorage on web)
+- Targets: **Android, iOS, and Web** (single codebase)
+
+### 🚀 Flutter Web Build
+
+```bash
+cd mobile_route_mission_map
+flutter pub get
+flutter build web
+```
+
+The built app will be in `mobile_route_mission_map/build/web/`. Serve it with any static file server.
+
+For development with hot reload:
+
+```bash
+cd mobile_route_mission_map
+flutter run -d chrome
+```
+
+### 📱 Mobile Roadmap
+
+The Flutter app in `mobile_route_mission_map/` already supports Android, iOS, and Web from a single Dart codebase. Future improvements may include:
+
+- Background location tracking
+- Mission history
+- User accounts
+- Real-world mission scenarios
+- Configurable map provider
 
 ## 📄 License
 

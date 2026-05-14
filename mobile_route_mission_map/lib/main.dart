@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const RouteMissionApp());
@@ -78,6 +80,7 @@ class MissionMapScreen extends StatefulWidget {
 class _MissionMapScreenState extends State<MissionMapScreen> {
   static const _initialCenter = LatLng(41.0082, 28.9784);
   static const _visitRadiusMeters = 38.0;
+  static const _storageKey = 'route-mission-state-v2';
 
   final _mapController = MapController();
   final _distance = const Distance();
@@ -98,9 +101,16 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
   bool _missionActive = false;
   bool _askingLocation = true;
   bool _isLocating = false;
+  bool _initialized = false;
   DateTime? _startedAt;
   Duration _elapsedBeforePause = Duration.zero;
   String _status = 'Konum bekleniyor';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadState();
+  }
 
   @override
   void dispose() {
@@ -108,6 +118,105 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
     _durationTimer?.cancel();
     _demoTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!prefs.containsKey('$_storageKey-center-lat')) return;
+
+    setState(() {
+      _center = LatLng(
+        prefs.getDouble('$_storageKey-center-lat') ?? _initialCenter.latitude,
+        prefs.getDouble('$_storageKey-center-lng') ?? _initialCenter.longitude,
+      );
+      final currentLat = prefs.getDouble('$_storageKey-current-lat');
+      final currentLng = prefs.getDouble('$_storageKey-current-lng');
+      if (currentLat != null && currentLng != null) {
+        _currentPoint = LatLng(currentLat, currentLng);
+      }
+      _accuracy = prefs.getDouble('$_storageKey-accuracy');
+      _mapZoom = prefs.getDouble('$_storageKey-zoom') ?? 17;
+      _distanceMeters = prefs.getDouble('$_storageKey-distance') ?? 0;
+      _missionRadius = prefs.getInt('$_storageKey-radius') ?? 320;
+      final styleIndex = prefs.getInt('$_storageKey-style');
+      if (styleIndex != null && styleIndex < MapVisualStyle.values.length) {
+        _mapStyle = MapVisualStyle.values[styleIndex];
+      }
+      _elapsedBeforePause = Duration(seconds: prefs.getInt('$_storageKey-elapsed') ?? 0);
+
+      final routeJson = prefs.getString('$_storageKey-route');
+      if (routeJson != null) {
+        final list = jsonDecode(routeJson) as List;
+        _route.addAll(list.map((e) => LatLng(e['lat'] as double, e['lng'] as double)));
+      }
+
+      final checkpointsJson = prefs.getString('$_storageKey-checkpoints');
+      if (checkpointsJson != null) {
+        final list = jsonDecode(checkpointsJson) as List;
+        _checkpoints.addAll(list.map((e) => MissionCheckpoint(
+              id: e['id'] as String,
+              name: e['name'] as String,
+              point: LatLng((e['lat'] as num).toDouble(), (e['lng'] as num).toDouble()),
+              visited: e['visited'] as bool,
+            )));
+      }
+
+      _status = _currentPoint == null ? 'Konum bekleniyor' : 'Konum alındı (kaydedildi)';
+      _askingLocation = _currentPoint == null;
+    });
+
+    _initialized = true;
+  }
+
+  Future<void> _saveState() async {
+    if (!_initialized) return;
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setDouble('$_storageKey-center-lat', _center.latitude);
+    await prefs.setDouble('$_storageKey-center-lng', _center.longitude);
+
+    final current = _currentPoint;
+    if (current != null) {
+      await prefs.setDouble('$_storageKey-current-lat', current.latitude);
+      await prefs.setDouble('$_storageKey-current-lng', current.longitude);
+    } else {
+      await prefs.remove('$_storageKey-current-lat');
+      await prefs.remove('$_storageKey-current-lng');
+    }
+
+    if (_accuracy != null) {
+      await prefs.setDouble('$_storageKey-accuracy', _accuracy!);
+    } else {
+      await prefs.remove('$_storageKey-accuracy');
+    }
+
+    await prefs.setDouble('$_storageKey-zoom', _mapZoom);
+    await prefs.setDouble('$_storageKey-distance', _distanceMeters);
+    await prefs.setInt('$_storageKey-radius', _missionRadius);
+    await prefs.setInt('$_storageKey-style', _mapStyle.index);
+    await prefs.setInt('$_storageKey-elapsed', _elapsed.inSeconds);
+
+    if (_route.isNotEmpty) {
+      await prefs.setString('$_storageKey-route', jsonEncode(
+        _route.map((e) => {'lat': e.latitude, 'lng': e.longitude}).toList(),
+      ));
+    } else {
+      await prefs.remove('$_storageKey-route');
+    }
+
+    if (_checkpoints.isNotEmpty) {
+      await prefs.setString('$_storageKey-checkpoints', jsonEncode(
+        _checkpoints.map((e) => {
+          'id': e.id,
+          'name': e.name,
+          'lat': e.point.latitude,
+          'lng': e.point.longitude,
+          'visited': e.visited,
+        }).toList(),
+      ));
+    } else {
+      await prefs.remove('$_storageKey-checkpoints');
+    }
   }
 
   int get _visitedCount => _checkpoints.where((checkpoint) => checkpoint.visited).length;
@@ -205,6 +314,8 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+
+    _saveState();
   }
 
   void _pauseMission() {
@@ -220,6 +331,8 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
       _startedAt = null;
       _status = 'Görev duraklatıldı';
     });
+
+    _saveState();
   }
 
   void _resetMission() {
@@ -231,6 +344,15 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
       _elapsedBeforePause = Duration.zero;
       _status = _currentPoint == null ? 'Konum bekleniyor' : 'Konum alındı';
     });
+    _clearSavedState();
+  }
+
+  Future<void> _clearSavedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith(_storageKey)).toList();
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
   }
 
   void _startDemoWalk() {
@@ -258,6 +380,8 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+
+    _saveState();
 
     _demoTimer = Timer.periodic(const Duration(milliseconds: 180), (timer) {
       if (segment >= demoRoute.length - 1) {
@@ -315,6 +439,7 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
     });
 
     _mapController.move(point, _mapZoom);
+    _saveState();
   }
 
   void _createMission(LatLng origin) {
@@ -372,20 +497,29 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
     if (point == null) return;
     setState(() => _mapZoom = 17);
     _mapController.move(point, _mapZoom);
+    _saveState();
   }
 
   void _zoomIn() {
     setState(() => _mapZoom = (_mapZoom + 1).clamp(3, 19).toDouble());
     _mapController.move(_mapController.camera.center, _mapZoom);
+    _saveState();
   }
 
   void _zoomOut() {
     setState(() => _mapZoom = (_mapZoom - 1).clamp(3, 19).toDouble());
     _mapController.move(_mapController.camera.center, _mapZoom);
+    _saveState();
   }
 
   void _changeMapStyle(MapVisualStyle style) {
     setState(() => _mapStyle = style);
+    _saveState();
+  }
+
+  void _changeRadius(double value) {
+    setState(() => _missionRadius = value.round());
+    _saveState();
   }
 
   void _setStatus(String value) {
@@ -451,7 +585,7 @@ class _MissionMapScreenState extends State<MissionMapScreen> {
               checkpoints: _checkpoints,
               currentPoint: _currentPoint,
               nextCheckpoint: _nextCheckpoint,
-              onRadiusChanged: (value) => setState(() => _missionRadius = value.round()),
+              onRadiusChanged: _changeRadius,
               onStart: _startMission,
               onPause: _pauseMission,
               onReset: _resetMission,
@@ -554,7 +688,7 @@ class _MapPane extends StatelessWidget {
                   polylines: [
                     Polyline(
                       points: route,
-                      color: Colors.white.withOpacity(0.92),
+                      color: Colors.white.withValues(alpha:0.92),
                       strokeWidth: 9,
                     ),
                     Polyline(
@@ -570,8 +704,8 @@ class _MapPane extends StatelessWidget {
                     CircleMarker(
                       point: currentPoint!,
                       radius: accuracy!.clamp(18, 120).toDouble(),
-                      color: const Color(0xFF0D747C).withOpacity(0.12),
-                      borderColor: const Color(0xFF0D747C).withOpacity(0.35),
+                      color: const Color(0xFF0D747C).withValues(alpha:0.12),
+                      borderColor: const Color(0xFF0D747C).withValues(alpha:0.35),
                       borderStrokeWidth: 2,
                     ),
                 ],
@@ -647,11 +781,11 @@ class _MapHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha:0.92),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha:0.12),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -719,11 +853,11 @@ class _LocationPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha:0.95),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.14),
+            color: Colors.black.withValues(alpha:0.14),
             blurRadius: 28,
             offset: const Offset(0, 14),
           ),
@@ -792,7 +926,7 @@ class _IconMapButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha:0.92),
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
@@ -855,11 +989,11 @@ class _MapControlStack extends StatelessWidget {
           const SizedBox(height: 8),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.92),
+              color: Colors.white.withValues(alpha:0.92),
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
+                  color: Colors.black.withValues(alpha:0.12),
                   blurRadius: 24,
                   offset: const Offset(0, 12),
                 ),
@@ -907,7 +1041,7 @@ class _LocationMarker extends StatelessWidget {
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0D747C).withOpacity(0.28),
+            color: const Color(0xFF0D747C).withValues(alpha:0.28),
             spreadRadius: 8,
             blurRadius: 18,
           ),
@@ -943,7 +1077,7 @@ class _CheckpointMarker extends StatelessWidget {
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
+            color: Colors.black.withValues(alpha:0.22),
             blurRadius: 14,
             offset: const Offset(0, 7),
           ),
